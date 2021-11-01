@@ -3,6 +3,7 @@ package xyz.cambria.autokeepingaccountbeta.fragment;
 import android.Manifest;
 import android.app.Activity;
 import android.content.Context;
+import android.content.Intent;
 import android.os.Bundle;
 import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
@@ -11,7 +12,10 @@ import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.AdapterView;
 import android.widget.ListView;
+import android.widget.Toast;
+import xyz.cambria.autokeepingaccountbeta.activity.KARecActivity;
 import xyz.cambria.autokeepingaccountbeta.adapter.KeepingAccountTestAdapter;
 import xyz.cambria.autokeepingaccountbeta.adapter.SMSAdapter;
 import xyz.cambria.autokeepingaccountbeta.databinding.FragmentStartBinding;
@@ -24,6 +28,8 @@ import xyz.cambria.autokeepingaccountbeta.util.KeepingAccountUtil;
 import java.util.ArrayList;
 import java.util.List;
 
+import static android.support.constraint.Constraints.TAG;
+
 public class StartFragment extends Fragment {
 
     private FragmentStartBinding binding;
@@ -35,7 +41,6 @@ public class StartFragment extends Fragment {
         super.onAttach(context);
         activity = this.getActivity();
         smsMapper = new SMSMapper(SMSMapper.SMS_URI_INBOX , activity);
-        Log.v(StartFragment.class.getName() , "!!!" + activity.toString());
     }
 
     @Nullable
@@ -57,9 +62,27 @@ public class StartFragment extends Fragment {
         for (SMSEntity smsEntity : smsEntities) {
             keepingAccountRecs.add(KeepingAccountRec.parseKARec(smsEntity , Bank.ABC));
         }
+        try {
+            KeepingAccountUtil.offsetRecord(keepingAccountRecs);
+        } catch (Exception e) {
+            Log.w(TAG, "onViewCreated: "+e.toString());
+            e.printStackTrace();
+            keepingAccountRecs.clear();
+        }
         listView.setAdapter(new KeepingAccountTestAdapter(keepingAccountRecs , this.getActivity()));
 
-    }
+        binding.listviewStartMain.setOnItemClickListener(new AdapterView.OnItemClickListener() {
+            @Override
+            public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
+                Toast.makeText(activity , keepingAccountRecs.get(position).toString() , Toast.LENGTH_SHORT).show();
 
+                Intent intent = new Intent(activity , KARecActivity.class);
+                intent.putExtra("KARItem" , keepingAccountRecs.get(position));
+                intent.putExtra("index" , position);
+                startActivity(intent);
+            }
+        });
+
+    }
 
 }
